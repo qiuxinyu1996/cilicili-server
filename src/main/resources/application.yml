@@ -1,0 +1,15 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    username: root
+    password: 1234
+    url: jdbc:mysql://localhost:3306/cilicili
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    password:
+
+location:
+  # 图片存放位置
+  image: file:C:/Users/ASUS/IdeaProjects/cilicili-resource/src/main/resources/static/image/
