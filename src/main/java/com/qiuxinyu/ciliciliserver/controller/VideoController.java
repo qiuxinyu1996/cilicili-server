@@ -9,6 +9,7 @@ import com.qiuxinyu.ciliciliserver.param.GetSourceParam;
 import com.qiuxinyu.ciliciliserver.service.ReviewService;
 import com.qiuxinyu.ciliciliserver.service.UserService;
 import com.qiuxinyu.ciliciliserver.service.VideoService;
+import com.qiuxinyu.ciliciliserver.vo.GetDetailListVo;
 import com.qiuxinyu.ciliciliserver.vo.GetSourceVo;
 import com.qiuxinyu.ciliciliserver.vo.ReviewVo;
 import lombok.extern.slf4j.Slf4j;
@@ -207,5 +208,16 @@ public class VideoController {
         }
         reviewService.save(review);
         return Result.success();
+    }
+
+    @GetMapping("/getDetailList")
+    public Result getDetailList(@RequestParam String videoId) {
+        Video video = videoService.getById(videoId);
+        String videoName = video.getName();
+        LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Video::getName, videoName);
+        queryWrapper.orderByAsc(Video::getCurrent);
+        List<Video> videoList = videoService.list(queryWrapper);
+        return Result.success(new GetDetailListVo(videoList, video.getCurrent()));
     }
 }
