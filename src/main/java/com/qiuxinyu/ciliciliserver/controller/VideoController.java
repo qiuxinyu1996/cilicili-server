@@ -2,11 +2,19 @@ package com.qiuxinyu.ciliciliserver.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiuxinyu.ciliciliserver.common.Result;
+import com.qiuxinyu.ciliciliserver.entity.Review;
+import com.qiuxinyu.ciliciliserver.entity.User;
 import com.qiuxinyu.ciliciliserver.entity.Video;
 import com.qiuxinyu.ciliciliserver.param.GetSourceParam;
+import com.qiuxinyu.ciliciliserver.service.ReviewService;
+import com.qiuxinyu.ciliciliserver.service.UserService;
 import com.qiuxinyu.ciliciliserver.service.VideoService;
+import com.qiuxinyu.ciliciliserver.vo.GetSourceVo;
+import com.qiuxinyu.ciliciliserver.vo.ReviewVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.ClientAbortException;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -14,6 +22,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/video")
@@ -21,6 +34,12 @@ import java.nio.charset.StandardCharsets;
 public class VideoController {
     @Resource
     private VideoService videoService;
+
+    @Resource
+    private ReviewService reviewService;
+
+    @Resource
+    private UserService userService;
 
     @PostMapping("/getSource")
     public Result getSource(@RequestBody GetSourceParam param) {
@@ -32,7 +51,7 @@ public class VideoController {
         if (targetVideo == null) {
             return Result.success(null);
         }
-        return Result.success(targetVideo.getSource());
+        return Result.success(new GetSourceVo(targetVideo.getId(), targetVideo.getSource()));
     }
 
     /**
@@ -110,6 +129,83 @@ public class VideoController {
         }
     }
 
+    @GetMapping("/getReview")
+    public Result getReview(@RequestParam String videoId) {
+        LambdaQueryWrapper<Review> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Review::getReviewVideoId, videoId);
+        queryWrapper.isNull(Review::getToReplyUserId);
+        queryWrapper.orderByDesc(Review::getReviewTime);
+        List<Review> reviewList = reviewService.list(queryWrapper);
+        // 将实体类转换为VO类
+        List<ReviewVo> reviewVoList = new ArrayList<>();
+        reviewList.stream().forEach(review -> {
+            ReviewVo reviewVo = new ReviewVo();
+            BeanUtils.copyProperties(review,reviewVo);
+            User user = userService.getById(review.getUserId());
+            reviewVo.setUserName(user.getNickname());
+            reviewVo.setUserIcon(user.getUserIcon());
+            reviewVo.setUserLevel(user.getUserLevel());
+            // 封装二级评论
+            LambdaQueryWrapper<Review> q = new LambdaQueryWrapper<>();
+            q.eq(Review::getPrimaryReviewId, review.getId());
+            q.orderByDesc(Review::getReviewTime);
+            List<Review> rl = reviewService.list(q);
+            List<ReviewVo> rvo = reviewList2reviewVoList(rl);
+            reviewVo.setReplyList(rvo);
+            reviewVo.setReviewTime(timestamp2String(review.getReviewTime()));
+            reviewVoList.add(reviewVo);
+        });
+        return Result.success(reviewVoList);
+    }
 
+    private List<ReviewVo> reviewList2reviewVoList(List<Review> reviewList) {
+        List<ReviewVo> reviewVoList = new ArrayList<>();
+        reviewList.forEach(review -> {
+            ReviewVo reviewVo = new ReviewVo();
+            BeanUtils.copyProperties(review, reviewVo);
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getId, review.getUserId());
+            queryWrapper.last("limit 1 ");
+            // 获取评论者信息
+            User user = userService.getOne(queryWrapper);
+            reviewVo.setUserName(user.getNickname());
+            reviewVo.setUserIcon(user.getUserIcon());
+            reviewVo.setUserLevel(user.getUserLevel());
+            // 封装引用评论
+            Review fatherReview = reviewService.getById(review.getToReplyReviewId());
+            if (fatherReview.getToReplyUserId() != null) {
+                reviewVo.setToReplyUserName(userService.getById(fatherReview.getUserId()).getNickname());
+                reviewVo.setToReplyReviewContent(fatherReview.getReviewContent());
+            }
+            reviewVo.setReviewTime(timestamp2String(review.getReviewTime()));
+            reviewVoList.add(reviewVo);
+        });
+        return reviewVoList;
+    }
 
+    private String timestamp2String(Timestamp timestamp) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyy-MM-dd   HH:mm");
+        return sdf.format(timestamp);
+    }
+
+    /**
+     * 当前评论区结构为
+     * 一级评论
+     *   二级评论
+     *   二级引用评论
+     *
+     * @param review
+     * @return
+     */
+    @PostMapping("/review")
+    public Result review(@RequestBody Review review) {
+        String reviewId = UUID.randomUUID().toString();
+        review.setId(reviewId);
+        // 二级评论需添加primaryReviewId
+        if (StringUtils.isBlank(review.getPrimaryReviewId())) {
+            review.setPrimaryReviewId(review.getToReplyReviewId());
+        }
+        reviewService.save(review);
+        return Result.success();
+    }
 }
