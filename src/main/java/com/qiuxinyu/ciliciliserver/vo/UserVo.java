@@ -12,11 +12,13 @@ public class UserVo {
     private String id;
     private String username;
     private String nickname;
+    private String userIcon;
 
     public UserVo (User user) {
         this.id = user.getId();
         this.username = (user.getUsername());
         this.nickname = (user.getNickname());
+        this.userIcon = (user.getUserIcon());
     }
 
 }

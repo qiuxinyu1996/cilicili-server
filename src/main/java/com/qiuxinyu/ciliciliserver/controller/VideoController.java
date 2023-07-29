@@ -5,13 +5,12 @@ import com.qiuxinyu.ciliciliserver.common.Result;
 import com.qiuxinyu.ciliciliserver.entity.Review;
 import com.qiuxinyu.ciliciliserver.entity.User;
 import com.qiuxinyu.ciliciliserver.entity.Video;
-import com.qiuxinyu.ciliciliserver.param.GetSourceParam;
 import com.qiuxinyu.ciliciliserver.service.ReviewService;
 import com.qiuxinyu.ciliciliserver.service.UserService;
 import com.qiuxinyu.ciliciliserver.service.VideoService;
 import com.qiuxinyu.ciliciliserver.vo.GetDetailListVo;
-import com.qiuxinyu.ciliciliserver.vo.GetSourceVo;
 import com.qiuxinyu.ciliciliserver.vo.ReviewVo;
+import com.qiuxinyu.ciliciliserver.vo.VideoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.ClientAbortException;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,19 +41,6 @@ public class VideoController {
 
     @Resource
     private UserService userService;
-
-    @PostMapping("/getSource")
-    public Result getSource(@RequestBody GetSourceParam param) {
-        LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Video::getName, param.getName());
-        queryWrapper.eq(Video::getCurrent, param.getCurrent());
-        queryWrapper.last("limit 1");
-        Video targetVideo = videoService.getOne(queryWrapper);
-        if (targetVideo == null) {
-            return Result.success(null);
-        }
-        return Result.success(new GetSourceVo(targetVideo.getId(), targetVideo.getSource()));
-    }
 
     /**
      * 获取视频流
@@ -149,7 +136,7 @@ public class VideoController {
             // 封装二级评论
             LambdaQueryWrapper<Review> q = new LambdaQueryWrapper<>();
             q.eq(Review::getPrimaryReviewId, review.getId());
-            q.orderByDesc(Review::getReviewTime);
+            q.orderByAsc(Review::getReviewTime);
             List<Review> rl = reviewService.list(q);
             List<ReviewVo> rvo = reviewList2reviewVoList(rl);
             reviewVo.setReplyList(rvo);
@@ -210,8 +197,8 @@ public class VideoController {
         return Result.success();
     }
 
-    @GetMapping("/getDetailList")
-    public Result getDetailList(@RequestParam String videoId) {
+    @GetMapping("/getVideoList")
+    public Result getVideoCards(@RequestParam String videoId) {
         Video video = videoService.getById(videoId);
         String videoName = video.getName();
         LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper<>();
@@ -219,5 +206,35 @@ public class VideoController {
         queryWrapper.orderByAsc(Video::getCurrent);
         List<Video> videoList = videoService.list(queryWrapper);
         return Result.success(new GetDetailListVo(videoList, video.getCurrent()));
+    }
+
+    @GetMapping("/getLinkCards")
+    public Result getLinkCards() {
+        LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper();
+        queryWrapper.eq(Video::getCurrent, 1);
+        queryWrapper.last("limit 10");
+        List<Video> videoList = videoService.list(queryWrapper);
+        // 随机排序
+        Collections.shuffle(videoList);
+        // 转vo类
+        List voList = videoList2VoList(videoList);
+
+        return Result.success(voList);
+    }
+
+    private List videoList2VoList(List<Video> videoList) {
+        List<VideoVo> videoVoList = new ArrayList<>();
+        videoList.stream().forEach(video -> {
+            VideoVo videoVo = new VideoVo();
+            BeanUtils.copyProperties(video,videoVo);
+            // 对部分字段进行转换
+            String nickname = userService.getById(video.getUploaderId()).getNickname();
+            SimpleDateFormat smf = new SimpleDateFormat("yyyy-MM--dd");
+            String uploadTime = smf.format(video.getUploadTime());
+            videoVo.setUploaderName(nickname);
+            videoVo.setUploadTime(uploadTime);
+            videoVoList.add(videoVo);
+        });
+        return videoVoList;
     }
 }
