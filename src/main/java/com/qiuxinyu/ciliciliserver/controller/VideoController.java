@@ -186,7 +186,7 @@ public class VideoController {
     }
 
     private String timestamp2String(Timestamp timestamp) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyy-MM-dd   HH:mm");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd   HH:mm");
         return sdf.format(timestamp);
     }
 
@@ -265,7 +265,7 @@ public class VideoController {
             BeanUtils.copyProperties(video,videoVo);
             // 对部分字段进行转换
             String nickname = userService.getById(video.getUploaderId()).getNickname();
-            SimpleDateFormat smf = new SimpleDateFormat("yyyy-MM--dd");
+            SimpleDateFormat smf = new SimpleDateFormat("yyyy-MM-dd");
             String uploadTime = smf.format(video.getUploadTime());
             videoVo.setUploaderName(nickname);
             videoVo.setUploadTime(uploadTime);

@@ -75,7 +75,7 @@ public class ConfigController {
             BeanUtils.copyProperties(video,videoVo);
             // 对部分字段进行转换
             String nickname = userService.getById(video.getUploaderId()).getNickname();
-            SimpleDateFormat smf = new SimpleDateFormat("yyyy-MM--dd");
+            SimpleDateFormat smf = new SimpleDateFormat("yyyy-MM-dd");
             String uploadTime = smf.format(video.getUploadTime());
             videoVo.setUploaderName(nickname);
             videoVo.setUploadTime(uploadTime);
