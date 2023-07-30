@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -31,6 +32,10 @@ public class ConfigController {
     @Resource
     private UserService userService;
 
+    /**
+     * 获取首页轮播图
+     * @return
+     */
     @GetMapping("/getCarouselFigure")
     public Result getCarouselFigure() {
         LambdaQueryWrapper<Config> queryWrapper = new LambdaQueryWrapper<>();
@@ -46,12 +51,20 @@ public class ConfigController {
         return Result.success(videos);
     }
 
+    /**
+     * 获取首页视频信息
+     * @return
+     */
     @GetMapping("/getVideoCards")
     public Result getVideoCards() {
         LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Video::getTotal, 1);
+        // 首页只展示8个视频
+        queryWrapper.last("limit 8 ");
         List<Video> videoList = videoService.list(queryWrapper);
         List voList = videoList2VoList(videoList);
+        // 随机排序
+        Collections.shuffle(voList);
         return Result.success(voList);
     }
 

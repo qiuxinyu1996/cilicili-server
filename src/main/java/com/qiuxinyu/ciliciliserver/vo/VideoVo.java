@@ -1,6 +1,5 @@
 package com.qiuxinyu.ciliciliserver.vo;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,4 +17,5 @@ public class VideoVo {
     private String title;
     private String uploaderName;
     private String uploadTime;
+    private UserVo uploader;
 }

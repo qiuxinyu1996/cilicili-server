@@ -22,4 +22,5 @@ public class ReviewVo {
     private List<ReviewVo> replyList;
     private String userId;
     private String primaryReviewId;
+    private UserVo reviewer;
 }

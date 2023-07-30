@@ -10,6 +10,7 @@ import com.qiuxinyu.ciliciliserver.service.UserService;
 import com.qiuxinyu.ciliciliserver.service.VideoService;
 import com.qiuxinyu.ciliciliserver.vo.GetDetailListVo;
 import com.qiuxinyu.ciliciliserver.vo.ReviewVo;
+import com.qiuxinyu.ciliciliserver.vo.UserVo;
 import com.qiuxinyu.ciliciliserver.vo.VideoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.ClientAbortException;
@@ -68,7 +69,6 @@ public class VideoController {
                 long fileLength = targetFile.length();
                 //播放
                 if (rangeString != null) {
-
                     long range = Long.parseLong(rangeString.substring(rangeString.indexOf("=") + 1, rangeString.indexOf("-")));
                     //设置内容类型
                     response.setHeader("Content-Type", "video/mov");
@@ -81,7 +81,6 @@ public class VideoController {
                     //设定文件读取开始位置（以字节为单位）
                     targetFile.seek(range);
                 } else {//下载
-
                     //设置响应头，把文件名字设置好
                     response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
                     //设置文件长度
@@ -89,8 +88,6 @@ public class VideoController {
                     //解决编码问题
                     response.setHeader("Content-Type", "application/octet-stream");
                 }
-
-
                 byte[] cache = new byte[1024 * 300];
                 int flag;
                 while ((flag = targetFile.read(cache)) != -1) {
@@ -102,10 +99,8 @@ public class VideoController {
                 response.setHeader("Content-Type", "application/json");
                 outputStream.write(message.getBytes(StandardCharsets.UTF_8));
             }
-
             outputStream.flush();
             outputStream.close();
-
         } catch (FileNotFoundException e) {
             log.error(e.getMessage());
         } catch (ClientAbortException e) {
@@ -117,6 +112,16 @@ public class VideoController {
         }
     }
 
+    /**
+     * 获取评论区信息
+     * 结构：
+     * 一级评论
+     *   二级评论
+     *   二级引用评论
+     *
+     * @param videoId
+     * @return
+     */
     @GetMapping("/getReview")
     public Result getReview(@RequestParam String videoId) {
         LambdaQueryWrapper<Review> queryWrapper = new LambdaQueryWrapper<>();
@@ -130,15 +135,24 @@ public class VideoController {
             ReviewVo reviewVo = new ReviewVo();
             BeanUtils.copyProperties(review,reviewVo);
             User user = userService.getById(review.getUserId());
+            UserVo reviewer = new UserVo();
+            BeanUtils.copyProperties(user, reviewer);
             reviewVo.setUserName(user.getNickname());
             reviewVo.setUserIcon(user.getUserIcon());
             reviewVo.setUserLevel(user.getUserLevel());
+            reviewVo.setReviewer(reviewer);
             // 封装二级评论
             LambdaQueryWrapper<Review> q = new LambdaQueryWrapper<>();
             q.eq(Review::getPrimaryReviewId, review.getId());
             q.orderByAsc(Review::getReviewTime);
             List<Review> rl = reviewService.list(q);
             List<ReviewVo> rvo = reviewList2reviewVoList(rl);
+            rvo.stream().forEach(item -> {
+                UserVo r = new UserVo();
+                User u = userService.getById(item.getUserId());
+                BeanUtils.copyProperties(u, r);
+                item.setReviewer(r);
+            });
             reviewVo.setReplyList(rvo);
             reviewVo.setReviewTime(timestamp2String(review.getReviewTime()));
             reviewVoList.add(reviewVo);
@@ -177,11 +191,7 @@ public class VideoController {
     }
 
     /**
-     * 当前评论区结构为
-     * 一级评论
-     *   二级评论
-     *   二级引用评论
-     *
+     * 发布评论
      * @param review
      * @return
      */
@@ -197,17 +207,43 @@ public class VideoController {
         return Result.success();
     }
 
+    /**
+     * 获取视频合集信息
+     * @param videoId
+     * @return
+     */
     @GetMapping("/getVideoList")
-    public Result getVideoCards(@RequestParam String videoId) {
+    public Result getVideoList(@RequestParam String videoId) {
         Video video = videoService.getById(videoId);
         String videoName = video.getName();
         LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Video::getName, videoName);
         queryWrapper.orderByAsc(Video::getCurrent);
         List<Video> videoList = videoService.list(queryWrapper);
-        return Result.success(new GetDetailListVo(videoList, video.getCurrent()));
+        // 把视频上传者信息封装进去
+        List<VideoVo> videoVoList = new ArrayList<>();
+        videoList.stream().forEach(item -> {
+            // videoVo
+            VideoVo videoVo = new VideoVo();
+            BeanUtils.copyProperties(item, videoVo);
+            // userVo
+            User upLoader = userService.getById(item.getUploaderId());
+            UserVo upLoaderVo = new UserVo();
+            BeanUtils.copyProperties(upLoader, upLoaderVo);
+            // userVo -> videoVo
+            videoVo.setUploader(upLoaderVo);
+            // 格式格式化
+            SimpleDateFormat smf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            videoVo.setUploadTime(smf.format(item.getUploadTime()));
+            videoVoList.add(videoVo);
+        });
+        return Result.success(new GetDetailListVo(videoVoList, video.getCurrent()));
     }
 
+    /**
+     * 获取播放页推荐视频
+     * @return
+     */
     @GetMapping("/getLinkCards")
     public Result getLinkCards() {
         LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper();

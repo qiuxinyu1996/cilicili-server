@@ -37,7 +37,6 @@ public class UserController {
         queryWrapper.eq(User::getUsername, loginUser.getUsername());
         queryWrapper.last("limit 1 ");
         User dbUser = userService.getOne(queryWrapper);
-
         if (dbUser != null && loginUser.getPassword().equals(dbUser.getPassword())) {
             // generate token
             Map payload = new HashMap(){
@@ -47,17 +46,13 @@ public class UserController {
             };
             String token = JWTUtil.createToken(payload, "this is key".getBytes());
             log.info("user: {} has generate token", dbUser.getUsername());
-
             // add to redis
             redisTemplate.opsForValue().set("userId:" + dbUser.getId(), JSONUtil.toJsonStr(loginUser));
             log.info("user`s info has added into redis");
-
             // generate vo
             LoginVo loginVo = new LoginVo(token, new UserVo(dbUser));
-
             return Result.success(loginVo);
         }
-
         throw new UsernameOrPasswordErrorException();
     }
 
