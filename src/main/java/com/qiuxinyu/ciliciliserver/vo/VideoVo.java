@@ -1,5 +1,6 @@
 package com.qiuxinyu.ciliciliserver.vo;
 
+import com.qiuxinyu.ciliciliserver.common.VideoStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,4 +19,5 @@ public class VideoVo {
     private String uploaderName;
     private String uploadTime;
     private UserVo uploader;
+    private VideoStatus status;
 }

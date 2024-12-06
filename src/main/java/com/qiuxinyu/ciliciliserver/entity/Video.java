@@ -2,6 +2,7 @@ package com.qiuxinyu.ciliciliserver.entity;
 
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.qiuxinyu.ciliciliserver.common.VideoStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,4 +24,5 @@ public class Video {
   private String uploaderId;
   @TableField("upload_time")
   private Timestamp uploadTime;
+  private VideoStatus status;
 }

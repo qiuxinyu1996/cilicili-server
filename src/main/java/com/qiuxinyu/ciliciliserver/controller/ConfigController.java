@@ -2,7 +2,9 @@ package com.qiuxinyu.ciliciliserver.controller;
 
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.qiuxinyu.ciliciliserver.common.Const;
 import com.qiuxinyu.ciliciliserver.common.Result;
+import com.qiuxinyu.ciliciliserver.common.VideoStatus;
 import com.qiuxinyu.ciliciliserver.entity.Config;
 import com.qiuxinyu.ciliciliserver.entity.Video;
 import com.qiuxinyu.ciliciliserver.service.ConfigService;
@@ -46,7 +48,10 @@ public class ConfigController {
         // 按配置顺序展示轮播图
         List videos = new ArrayList();
         videoIds.stream().forEach(item -> {
-            videos.add(videoService.getById(item));
+            Video headVideo = videoService.getById(item);
+            if (VideoStatus.normal.equals(headVideo.getStatus())) {
+                videos.add(videoService.getById(item));
+            }
         });
         return Result.success(videos);
     }
@@ -59,13 +64,13 @@ public class ConfigController {
     public Result getVideoCards() {
         LambdaQueryWrapper<Video> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Video::getTotal, 1);
-        // 首页只展示8个视频
-        queryWrapper.last("limit 8 ");
+        queryWrapper.eq(Video::getStatus, VideoStatus.normal);
         List<Video> videoList = videoService.list(queryWrapper);
         List voList = videoList2VoList(videoList);
         // 随机排序
         Collections.shuffle(voList);
-        return Result.success(voList);
+        // 首页只展示12个视频
+        return Result.success(voList.subList(0, 12));
     }
 
     private List videoList2VoList(List<Video> videoList) {

@@ -1,0 +1,35 @@
+server:
+  port: 8081
+spring:
+  datasource:
+    username: root
+    password: 1234
+    url: jdbc:mysql://localhost:3306/cilicili
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    password:
+  profiles: prod
+
+# 静态资源转发。仅供本地环境使用，线上环境配置于nginx.conf
+location:
+  image:
+  video:
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+
+# 项目运行日志，根据自己实际路径配置
+logging:
+  file:
+    name: "/var/qxy/logs/cilicili.log"
+
+# 仅当接入腾讯云vod时生效
+vod:
+  # 从控制台获取
+  key: vr9rZSJ73FLOLKK79cqU
+  # 链接过期时间（s）
+  timeout: 1800
+  # 最大同时播放ip数
+  rlimit: 5
+

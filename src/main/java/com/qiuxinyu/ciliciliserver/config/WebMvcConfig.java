@@ -17,18 +17,25 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Value("${location.image}")
     private String imageLocation;
 
+    @Value("${location.video}")
+    private String videoLocation;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(tokenInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/api/user/login")
-                .excludePathPatterns("/api/video/getVideo")
+                .excludePathPatterns("/api/user/submit")
+                .excludePathPatterns("/video/**")
                 .excludePathPatterns("/image/**");
     }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/image/**")
-                .addResourceLocations(imageLocation);
+                .addResourceLocations("file:" + imageLocation);
+        // 代理转发，避免本地资源拒绝访问的问题
+        registry.addResourceHandler("/video/**")
+                .addResourceLocations("file:" + videoLocation);
     }
 }

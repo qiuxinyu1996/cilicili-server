@@ -1,0 +1,28 @@
+server:
+  port: 8081
+spring:
+  datasource:
+    username: root
+    password: 1234
+    url: jdbc:mysql://localhost:3306/cilicili
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    password:
+  profiles: local
+
+location:
+  image: C:/Users/ASUS/IdeaProjects/cilicili-resource/src/main/resources/static/image/
+  video: C:/Users/ASUS/IdeaProjects/cilicili-resource/src/main/resources/static/video/
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+
+# 仅当接入腾讯云vod时生效
+vod:
+  # 从控制台获取
+  key: vr9rZSJ73FLOLKK79cqU
+  # 链接过期时间（s）
+  timeout: 1800
+  # 最大同时播放ip数
+  rlimit: 5
